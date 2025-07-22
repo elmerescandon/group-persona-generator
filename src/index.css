@@ -36,7 +36,28 @@ All colors MUST be HSL.
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    /* Group Colors */
+    --group-a: 221 83% 53%;
+    --group-a-foreground: 0 0% 100%;
+    --group-a-light: 221 83% 95%;
+    
+    --group-b: 142 69% 58%;
+    --group-b-foreground: 0 0% 100%;
+    --group-b-light: 142 69% 95%;
+    
+    --group-c: 25 95% 53%;
+    --group-c-foreground: 0 0% 100%;
+    --group-c-light: 25 95% 95%;
+    
+    --group-d: 269 79% 53%;
+    --group-d-foreground: 0 0% 100%;
+    --group-d-light: 269 79% 95%;
+
+    /* Progress */
+    --progress-bg: 220 14.3% 95.9%;
+    --progress-complete: 142 69% 58%;
+
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -83,6 +104,27 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Group Colors Dark Mode */
+    --group-a: 221 83% 60%;
+    --group-a-foreground: 0 0% 100%;
+    --group-a-light: 221 83% 15%;
+    
+    --group-b: 142 69% 65%;
+    --group-b-foreground: 0 0% 100%;
+    --group-b-light: 142 69% 15%;
+    
+    --group-c: 25 95% 60%;
+    --group-c-foreground: 0 0% 100%;
+    --group-c-light: 25 95% 15%;
+    
+    --group-d: 269 79% 60%;
+    --group-d-foreground: 0 0% 100%;
+    --group-d-light: 269 79% 15%;
+
+    /* Progress Dark Mode */
+    --progress-bg: 217.2 32.6% 17.5%;
+    --progress-complete: 142 69% 65%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

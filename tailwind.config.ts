@@ -52,6 +52,30 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				'group-a': {
+					DEFAULT: 'hsl(var(--group-a))',
+					foreground: 'hsl(var(--group-a-foreground))',
+					light: 'hsl(var(--group-a-light))'
+				},
+				'group-b': {
+					DEFAULT: 'hsl(var(--group-b))',
+					foreground: 'hsl(var(--group-b-foreground))',
+					light: 'hsl(var(--group-b-light))'
+				},
+				'group-c': {
+					DEFAULT: 'hsl(var(--group-c))',
+					foreground: 'hsl(var(--group-c-foreground))',
+					light: 'hsl(var(--group-c-light))'
+				},
+				'group-d': {
+					DEFAULT: 'hsl(var(--group-d))',
+					foreground: 'hsl(var(--group-d-foreground))',
+					light: 'hsl(var(--group-d-light))'
+				},
+				progress: {
+					bg: 'hsl(var(--progress-bg))',
+					complete: 'hsl(var(--progress-complete))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
