@@ -98,10 +98,10 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {images.map((image, index) => (
               <div key={index} className="space-y-4">
-                <div className={`
-                  ${image.aspect} w-full bg-muted rounded-lg overflow-hidden border-2 relative
-                  ${image.src ? `border-${getGroupColor()}` : 'border-border'}
-                `}>
+          <div className={`
+            ${image.aspect} w-full bg-muted rounded-lg overflow-hidden border-2 relative
+            ${image.src ? 'border-primary' : 'border-border'}
+          `}>
                   {image.src ? (
                     <img 
                       src={image.src} 
@@ -154,7 +154,6 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
               onClick={onNext} 
               disabled={!allImagesGenerated}
               size="lg"
-              className={allImagesGenerated ? `bg-${getGroupColor()} hover:bg-${getGroupColor()}/90` : ''}
             >
               Complete Registration
             </Button>
