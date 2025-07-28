@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, Download, Image, Share2 } from 'lucide-react';
+import { ChevronLeft, Download, Image, Share2, Wand2 } from 'lucide-react';
 import { UserData } from './RegistrationWizard';
 import { LoadingSpinner } from './LoadingSpinner';
+import { removeBackground, loadImage, addColorBackground } from '@/lib/backgroundRemoval';
+import { toast } from 'sonner';
 
 interface GeneratedImagesStepProps {
   userData: UserData;
@@ -13,6 +15,7 @@ interface GeneratedImagesStepProps {
 
 export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImagesStepProps) => {
   const [isGenerating, setIsGenerating] = useState(true);
+  const [isProcessingBackground, setIsProcessingBackground] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<{
     profileWithFlag: string | null;
     socialBanner: string | null;
@@ -54,12 +57,58 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
     }
   };
 
+  const getGroupHexColor = () => {
+    switch (userData.selectedGroup) {
+      case 'A': return '#1e40af'; // Blue
+      case 'B': return '#059669'; // Emerald
+      case 'C': return '#ea580c'; // Orange
+      case 'D': return '#7c3aed'; // Purple
+      default: return '#3b82f6'; // Default blue
+    }
+  };
+
+  const handleRemoveBackground = async () => {
+    if (!userData.profilePicture) {
+      toast.error('No profile picture found');
+      return;
+    }
+
+    setIsProcessingBackground(true);
+    try {
+      toast.info('Starting background removal...');
+      
+      // Load the image
+      const imageElement = await loadImage(userData.profilePicture);
+      
+      // Remove background
+      const imageWithoutBg = await removeBackground(imageElement);
+      
+      // Load the processed image
+      const processedImage = await loadImage(imageWithoutBg);
+      
+      // Add group color background
+      const finalImage = await addColorBackground(processedImage, getGroupHexColor());
+      
+      // Convert to URL and update the profile image
+      const imageUrl = URL.createObjectURL(finalImage);
+      setGeneratedImages(prev => ({ ...prev, profileWithFlag: imageUrl }));
+      
+      toast.success('Background removed and group color added!');
+    } catch (error) {
+      console.error('Background removal failed:', error);
+      toast.error('Failed to process image. Please try again.');
+    } finally {
+      setIsProcessingBackground(false);
+    }
+  };
+
   const images = [
     {
       title: 'Profile with Flag Background',
       description: 'Your profile picture with your group flag as background',
       src: generatedImages.profileWithFlag,
       aspect: 'aspect-square',
+      hasBackgroundRemoval: true,
     },
     {
       title: 'Social Media Banner',
@@ -129,17 +178,31 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
                   <h3 className="font-semibold">{image.title}</h3>
                   <p className="text-sm text-muted-foreground">{image.description}</p>
                   
-                  {image.src && (
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
+                  <div className="flex gap-2">
+                    {image.hasBackgroundRemoval && !image.src && (
+                      <Button 
+                        size="sm" 
+                        variant="default" 
+                        className="flex-1"
+                        onClick={handleRemoveBackground}
+                        disabled={isProcessingBackground || !userData.profilePicture}
+                      >
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        {isProcessingBackground ? 'Processing...' : 'Remove Background'}
                       </Button>
-                      <Button size="sm" variant="outline">
-                        <Share2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
+                    )}
+                    {image.src && (
+                      <>
+                        <Button size="sm" variant="outline" className="flex-1">
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
