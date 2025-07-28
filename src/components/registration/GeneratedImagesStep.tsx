@@ -27,25 +27,42 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
   });
 
   useEffect(() => {
-    // Simulate image generation process
+    // Generate images automatically when component mounts
     const generateImages = async () => {
       setIsGenerating(true);
       
-      // Simulate API calls with delays
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setGeneratedImages(prev => ({ ...prev, profileWithFlag: '/placeholder.svg' }));
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setGeneratedImages(prev => ({ ...prev, socialBanner: '/placeholder.svg' }));
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setGeneratedImages(prev => ({ ...prev, admissionBanner: '/placeholder.svg' }));
-      
-      setIsGenerating(false);
+      try {
+        // Generate profile with flag background if profile picture exists
+        if (userData.profilePicture) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay for UX
+          
+          const imageElement = await loadImage(userData.profilePicture);
+          const imageWithoutBg = await removeBackground(imageElement);
+          const processedImage = await loadImage(imageWithoutBg);
+          const profileWithFlag = await addColorBackground(processedImage, getGroupHexColor());
+          const profileUrl = URL.createObjectURL(profileWithFlag);
+          
+          setGeneratedImages(prev => ({ ...prev, profileWithFlag: profileUrl }));
+        }
+        
+        // Generate social banner (simulated for now)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setGeneratedImages(prev => ({ ...prev, socialBanner: '/placeholder.svg' }));
+        
+        // Generate admission banner (simulated for now)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setGeneratedImages(prev => ({ ...prev, admissionBanner: '/placeholder.svg' }));
+        
+      } catch (error) {
+        console.error('Error generating images:', error);
+        toast.error('Failed to generate some images. Please try again.');
+      } finally {
+        setIsGenerating(false);
+      }
     };
 
     generateImages();
-  }, []);
+  }, [userData.profilePicture, userData.selectedGroup]);
 
   const getGroupColor = () => {
     switch (userData.selectedGroup) {
@@ -75,7 +92,7 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
 
     setIsProcessingBackground(true);
     try {
-      toast.info('Starting background removal...');
+      toast.info('Regenerating profile image...');
       
       // Load the image
       const imageElement = await loadImage(userData.profilePicture);
@@ -93,7 +110,7 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
       const imageUrl = URL.createObjectURL(finalImage);
       setGeneratedImages(prev => ({ ...prev, profileWithFlag: imageUrl }));
       
-      toast.success('Background removed and group color added!');
+      toast.success('Profile image regenerated with group background!');
     } catch (error) {
       console.error('Background removal failed:', error);
       toast.error('Failed to process image. Please try again.');
@@ -179,21 +196,21 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
                   <p className="text-sm text-muted-foreground">{image.description}</p>
                   
                   <div className="flex gap-2">
-                    {image.hasBackgroundRemoval && !image.src && (
+                    {image.hasBackgroundRemoval && image.src && (
                       <Button 
                         size="sm" 
-                        variant="default" 
+                        variant="secondary" 
                         className="flex-1"
                         onClick={handleRemoveBackground}
-                        disabled={isProcessingBackground || !userData.profilePicture}
+                        disabled={isProcessingBackground}
                       >
                         <Wand2 className="w-4 h-4 mr-2" />
-                        {isProcessingBackground ? 'Processing...' : 'Remove Background'}
+                        {isProcessingBackground ? 'Processing...' : 'Regenerate'}
                       </Button>
                     )}
                     {image.src && (
                       <>
-                        <Button size="sm" variant="outline" className="flex-1">
+                        <Button size="sm" variant="outline" className={image.hasBackgroundRemoval ? 'flex-1' : 'flex-1'}>
                           <Download className="w-4 h-4 mr-2" />
                           Download
                         </Button>
