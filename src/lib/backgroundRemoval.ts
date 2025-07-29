@@ -157,3 +157,131 @@ export const addColorBackground = (
     );
   });
 };
+
+export const createSocialBanner = (
+  groupName: string,
+  userName: string,
+  backgroundColor: string
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      reject(new Error('Could not get canvas context'));
+      return;
+    }
+    
+    // Social media banner dimensions (3:1 ratio)
+    canvas.width = 1200;
+    canvas.height = 400;
+    
+    // Create gradient background
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, backgroundColor);
+    gradient.addColorStop(1, backgroundColor + '80'); // Add transparency
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add geometric pattern
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 60) % canvas.width;
+      const y = (i * 30) % canvas.height;
+      ctx.beginPath();
+      ctx.arc(x, y, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Add text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${userName}`, canvas.width / 2, canvas.height / 2 - 20);
+    
+    ctx.font = 'bold 32px Arial';
+    ctx.fillText(`Group ${groupName} Member`, canvas.width / 2, canvas.height / 2 + 40);
+    
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      'image/png',
+      1.0
+    );
+  });
+};
+
+export const createAdmissionBanner = (
+  groupName: string,
+  userName: string,
+  backgroundColor: string
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      reject(new Error('Could not get canvas context'));
+      return;
+    }
+    
+    // Admission banner dimensions (4:3 ratio)
+    canvas.width = 800;
+    canvas.height = 600;
+    
+    // Create radial gradient background
+    const gradient = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 0,
+      canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
+    );
+    gradient.addColorStop(0, backgroundColor);
+    gradient.addColorStop(1, backgroundColor + '60');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add celebration elements
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = Math.random() * 15 + 5;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Add text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎉 CONGRATULATIONS! 🎉', canvas.width / 2, canvas.height / 2 - 80);
+    
+    ctx.font = 'bold 28px Arial';
+    ctx.fillText(`${userName}`, canvas.width / 2, canvas.height / 2 - 20);
+    
+    ctx.font = '24px Arial';
+    ctx.fillText(`Welcome to Group ${groupName}!`, canvas.width / 2, canvas.height / 2 + 20);
+    
+    ctx.font = '20px Arial';
+    ctx.fillText('You have successfully joined the program', canvas.width / 2, canvas.height / 2 + 60);
+    
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to create blob'));
+        }
+      },
+      'image/png',
+      1.0
+    );
+  });
+};

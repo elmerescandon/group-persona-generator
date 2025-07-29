@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft, Download, Image, Share2, Wand2 } from 'lucide-react';
 import { UserData } from './RegistrationWizard';
 import { LoadingSpinner } from './LoadingSpinner';
-import { removeBackground, loadImage, addColorBackground } from '@/lib/backgroundRemoval';
+import { removeBackground, loadImage, addColorBackground, createSocialBanner, createAdmissionBanner } from '@/lib/backgroundRemoval';
 import { toast } from 'sonner';
 
 interface GeneratedImagesStepProps {
@@ -32,27 +32,36 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
       setIsGenerating(true);
       
       try {
+        const userName = `${userData.firstName} ${userData.lastName}`;
+        const groupColor = getGroupHexColor();
+        
         // Generate profile with flag background if profile picture exists
         if (userData.profilePicture) {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay for UX
-          
+          toast.info('Processing profile picture...');
           const imageElement = await loadImage(userData.profilePicture);
           const imageWithoutBg = await removeBackground(imageElement);
           const processedImage = await loadImage(imageWithoutBg);
-          const profileWithFlag = await addColorBackground(processedImage, getGroupHexColor());
+          const profileWithFlag = await addColorBackground(processedImage, groupColor);
           const profileUrl = URL.createObjectURL(profileWithFlag);
           
           setGeneratedImages(prev => ({ ...prev, profileWithFlag: profileUrl }));
         }
         
-        // Generate social banner (simulated for now)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setGeneratedImages(prev => ({ ...prev, socialBanner: '/placeholder.svg' }));
+        // Generate social banner
+        toast.info('Creating social media banner...');
+        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UX
+        const socialBanner = await createSocialBanner(userData.selectedGroup || 'A', userName, groupColor);
+        const socialUrl = URL.createObjectURL(socialBanner);
+        setGeneratedImages(prev => ({ ...prev, socialBanner: socialUrl }));
         
-        // Generate admission banner (simulated for now)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setGeneratedImages(prev => ({ ...prev, admissionBanner: '/placeholder.svg' }));
+        // Generate admission banner
+        toast.info('Creating admission banner...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const admissionBanner = await createAdmissionBanner(userData.selectedGroup || 'A', userName, groupColor);
+        const admissionUrl = URL.createObjectURL(admissionBanner);
+        setGeneratedImages(prev => ({ ...prev, admissionBanner: admissionUrl }));
         
+        toast.success('All images generated successfully!');
       } catch (error) {
         console.error('Error generating images:', error);
         toast.error('Failed to generate some images. Please try again.');
@@ -62,7 +71,7 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
     };
 
     generateImages();
-  }, [userData.profilePicture, userData.selectedGroup]);
+  }, [userData.profilePicture, userData.selectedGroup, userData.firstName, userData.lastName]);
 
   const getGroupColor = () => {
     switch (userData.selectedGroup) {
