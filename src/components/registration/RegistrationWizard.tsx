@@ -62,7 +62,7 @@ export const RegistrationWizard = () => {
           }}
         />
 
-        <div className="mt-8">
+        <div className="mt-12">
           {currentStep === 1 && (
             <PersonalInfoStep
               userData={userData}

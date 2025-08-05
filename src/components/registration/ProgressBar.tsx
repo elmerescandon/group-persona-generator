@@ -1,5 +1,4 @@
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronRight } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useMemo } from 'react';
 
 interface StepData {
@@ -20,7 +19,6 @@ const ANIMATION_CONFIG = {
   spring: { type: "spring", stiffness: 200, damping: 20 },
   easeOut: { duration: 0.5, ease: "easeOut" },
   breathe: { repeat: Infinity, duration: 2, ease: "easeInOut" },
-  chevron: { repeat: Infinity, duration: 2, ease: "easeInOut" },
 } as const;
 
 const STEP_DEFINITIONS: StepData[] = [
@@ -42,21 +40,12 @@ export const ProgressBar = ({
     STEP_DEFINITIONS.slice(0, totalSteps), 
     [totalSteps]
   );
-  
-  const currentStepData = useMemo(() => 
-    steps[currentStep - 1], 
-    [steps, currentStep]
-  );
 
   const handleStepClick = (stepNumber: number) => {
     if (!disabled && onStepClick && stepNumber <= currentStep) {
       onStepClick(stepNumber);
     }
   };
-
-  if (!currentStepData) {
-    return null; // Handle edge case gracefully
-  }
 
   return (
     <motion.div 
@@ -68,11 +57,11 @@ export const ProgressBar = ({
       aria-valuenow={currentStep}
       aria-valuemin={1}
       aria-valuemax={totalSteps}
-      aria-label={`Step ${currentStep} of ${totalSteps}: ${currentStepData.title}`}
+      aria-label={`Step ${currentStep} of ${totalSteps}`}
     >
       {/* Stepper Dots Navigation */}
       <nav 
-        className="flex items-center justify-center gap-2 mb-12"
+        className="flex items-center justify-center gap-2"
         role="tablist"
         aria-label="Registration progress"
       >
@@ -196,77 +185,6 @@ export const ProgressBar = ({
           />
         )}
       </nav>
-
-      {/* Current Step Content */}
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={currentStep}
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={shouldReduceMotion ? {} : { opacity: 0, y: -30 }}
-          transition={shouldReduceMotion 
-            ? { duration: 0 } 
-            : ANIMATION_CONFIG.easeOut
-          }
-          className="text-center space-y-6"
-          role="tabpanel"
-          aria-labelledby={`step-${currentStep}-button`}
-        >
-          <div className="space-y-3">
-            <motion.h1 
-              id={`step-${currentStep}-title`}
-              className="text-4xl font-bold text-foreground tracking-tight"
-              initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={shouldReduceMotion 
-                ? { duration: 0 } 
-                : { delay: 0.2, duration: 0.4 }
-              }
-            >
-              {currentStepData.title}
-            </motion.h1>
-            <motion.p 
-              className="text-xl text-muted-foreground max-w-md mx-auto leading-relaxed"
-              initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={shouldReduceMotion 
-                ? { duration: 0 } 
-                : { delay: 0.3, duration: 0.4 }
-              }
-            >
-              {currentStepData.description}
-            </motion.p>
-          </div>
-
-          {/* Subtle next step hint */}
-          {currentStep < totalSteps && steps[currentStep] && (
-            <motion.div
-              initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={shouldReduceMotion 
-                ? { duration: 0 } 
-                : { delay: 0.6, duration: 0.4 }
-              }
-              className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70 mt-8"
-              role="note"
-              aria-label={`Next step: ${steps[currentStep].title}`}
-            >
-              <span className="text-xs">Up next</span>
-              {!shouldReduceMotion && (
-                <motion.div
-                  animate={{ x: [0, 3, 0] }}
-                  transition={ANIMATION_CONFIG.chevron}
-                  aria-hidden="true"
-                >
-                  <ChevronRight className="w-3 h-3" />
-                </motion.div>
-              )}
-              {shouldReduceMotion && <ChevronRight className="w-3 h-3" />}
-              <span className="text-xs font-medium">{steps[currentStep].title}</span>
-            </motion.div>
-          )}
-        </motion.main>
-      </AnimatePresence>
     </motion.div>
   );
 };
