@@ -4,6 +4,7 @@ import { GroupSelectionStep } from './GroupSelectionStep';
 import { GeneratedImagesStep } from './GeneratedImagesStep';
 import { SuccessStep } from './SuccessStep';
 import { ProgressBar } from './ProgressBar';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export type UserData = {
   firstName: string;
@@ -45,6 +46,7 @@ export const RegistrationWizard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <ThemeToggle />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">Program Registration</h1>
