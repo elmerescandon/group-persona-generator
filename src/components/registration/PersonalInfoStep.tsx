@@ -145,45 +145,58 @@ export const PersonalInfoStep = ({ userData, updateUserData, onNext }: PersonalI
           </Select>
         </div>
 
+        {/* Option 1: Large Drop Zone with Centered Preview */}
         <div className="space-y-2">
           <Label>Profile Picture</Label>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                id="profilePicture"
-              />
-              <div className="w-24 h-24 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 transition-colors cursor-pointer">
-                {profilePreview ? (
-                  <img src={profilePreview} alt="Profile preview" className="w-full h-full object-cover rounded-lg" />
-                ) : (
-                  <div className="text-center">
-                    <User className="w-8 h-8 mx-auto text-muted-foreground mb-1" />
-                    <p className="text-xs text-muted-foreground">Photo</p>
+          <div className="relative group">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              id="profilePicture"
+            />
+            <div className={`
+              w-full h-48 border-2 border-dashed rounded-xl flex flex-col items-center justify-center
+              transition-all duration-200 cursor-pointer
+              ${profilePreview ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/70 hover:bg-primary/5'}
+              group-hover:scale-[1.02] group-active:scale-[0.98]
+            `}>
+              {profilePreview ? (
+                <div className="relative w-full h-full p-4">
+                  <img 
+                    src={profilePreview} 
+                    alt="Profile preview" 
+                    className="w-full h-full object-cover rounded-lg shadow-sm"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                    <div className="text-white text-center">
+                      <Upload className="w-6 h-6 mx-auto mb-1" />
+                      <p className="text-sm font-medium">Change Photo</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="flex-1">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById('profilePicture')?.click()}
-                className="w-full"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Photo
-              </Button>
-              <p className="text-xs text-muted-foreground mt-1">
-                JPG, PNG up to 2MB, 1000x1000 ideal
-              </p>
+                </div>
+              ) : (
+                <div className="text-center p-6">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <h3 className="font-medium text-lg mb-1">Upload your photo</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Drag and drop or click to browse
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, PNG up to 2MB • 1000×1000 recommended
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           {fileError && (
-            <p className="text-sm text-red-500 mt-2">{fileError}</p>
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <p className="text-sm text-red-600">{fileError}</p>
+            </div>
           )}
         </div>
 
