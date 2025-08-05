@@ -15,10 +15,21 @@ interface PersonalInfoStepProps {
 
 export const PersonalInfoStep = ({ userData, updateUserData, onNext }: PersonalInfoStepProps) => {
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (2MB = 2 * 1024 * 1024 bytes)
+      const maxSize = 2 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setFileError('File size must be less than 2MB');
+        setProfilePreview(null);
+        updateUserData({ profilePicture: undefined });
+        return;
+      }
+
+      setFileError(null);
       updateUserData({ profilePicture: file });
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -139,10 +150,13 @@ export const PersonalInfoStep = ({ userData, updateUserData, onNext }: PersonalI
                 Upload Photo
               </Button>
               <p className="text-xs text-muted-foreground mt-1">
-                JPG, PNG up to 10MB
+                JPG, PNG up to 2MB, 1000x1000 ideal
               </p>
             </div>
           </div>
+          {fileError && (
+            <p className="text-sm text-red-500 mt-2">{fileError}</p>
+          )}
         </div>
 
         <Button 
