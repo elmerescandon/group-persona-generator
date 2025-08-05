@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft, Download, Image, Share2, Wand2 } from 'lucide-react';
 import { UserData } from './RegistrationWizard';
 import { LoadingSpinner } from './LoadingSpinner';
-import { removeBackground, loadImage, addColorBackground, createSocialBanner, createAdmissionBanner } from '@/lib/backgroundRemoval';
+import { loadImage, addColorBackground, addMaskBorders, createSocialBanner, createAdmissionBanner } from '@/lib/backgroundRemoval';
 import { toast } from 'sonner';
 
 interface GeneratedImagesStepProps {
@@ -35,13 +35,11 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
         const userName = `${userData.firstName} ${userData.lastName}`;
         const groupColor = getGroupHexColor();
         
-        // Generate profile with flag background if profile picture exists
+        // Generate profile with mask borders if profile picture exists
         if (userData.profilePicture) {
           toast.info('Processing profile picture...');
           const imageElement = await loadImage(userData.profilePicture);
-          const imageWithoutBg = await removeBackground(imageElement);
-          const processedImage = await loadImage(imageWithoutBg);
-          const profileWithFlag = await addColorBackground(processedImage, groupColor);
+          const profileWithFlag = await addMaskBorders(imageElement);
           const profileUrl = URL.createObjectURL(profileWithFlag);
           
           setGeneratedImages(prev => ({ ...prev, profileWithFlag: profileUrl }));
@@ -106,22 +104,16 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
       // Load the image
       const imageElement = await loadImage(userData.profilePicture);
       
-      // Remove background
-      const imageWithoutBg = await removeBackground(imageElement);
-      
-      // Load the processed image
-      const processedImage = await loadImage(imageWithoutBg);
-      
-      // Add group color background
-      const finalImage = await addColorBackground(processedImage, getGroupHexColor());
+      // Add mask borders
+      const finalImage = await addMaskBorders(imageElement);
       
       // Convert to URL and update the profile image
       const imageUrl = URL.createObjectURL(finalImage);
       setGeneratedImages(prev => ({ ...prev, profileWithFlag: imageUrl }));
       
-      toast.success('Profile image regenerated with group background!');
+      toast.success('Profile image regenerated with mask borders!');
     } catch (error) {
-      console.error('Background removal failed:', error);
+      console.error('Image processing failed:', error);
       toast.error('Failed to process image. Please try again.');
     } finally {
       setIsProcessingBackground(false);

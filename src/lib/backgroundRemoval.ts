@@ -6,6 +6,7 @@ env.useBrowserCache = false;
 
 const MAX_IMAGE_DIMENSION = 1024;
 
+
 function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement) {
   let width = image.naturalWidth;
   let height = image.naturalHeight;
@@ -34,7 +35,7 @@ function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 export const removeBackground = async (imageElement: HTMLImageElement): Promise<Blob> => {
   try {
     console.log('Starting background removal process...');
-    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
+    const segmenter = await pipeline('image-segmentation', 'briaai/RMBG-1.4', {
       device: 'webgpu',
     });
     
@@ -81,10 +82,10 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     );
     const data = outputImageData.data;
     
-    // Apply inverted mask to alpha channel
+    // Apply mask to alpha channel (BRIA models return foreground masks)
     for (let i = 0; i < result[0].mask.data.length; i++) {
-      // Invert the mask value (1 - value) to keep the subject instead of the background
-      const alpha = Math.round((1 - result[0].mask.data[i]) * 255);
+      // BRIA models return foreground masks: high values = person, low values = background
+      const alpha = Math.round(result[0].mask.data[i] * 255);
       data[i * 4 + 3] = alpha;
     }
     
@@ -155,6 +156,165 @@ export const addColorBackground = (
       'image/png',
       1.0
     );
+  });
+};
+
+export const addImageBackground = (
+  imageWithTransparentBg: HTMLImageElement
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const backgroundImg = new Image();
+    backgroundImg.crossOrigin = 'anonymous';
+    
+    backgroundImg.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      // Use background image dimensions
+      canvas.width = backgroundImg.width;
+      canvas.height = backgroundImg.height;
+      
+      // Draw background image first
+      ctx.drawImage(backgroundImg, 0, 0);
+      
+      // Calculate scaling to fit person image within background while maintaining aspect ratio
+      const personAspect = imageWithTransparentBg.width / imageWithTransparentBg.height;
+      const backgroundAspect = backgroundImg.width / backgroundImg.height;
+      
+      let drawWidth, drawHeight, drawX, drawY;
+      
+      if (personAspect > backgroundAspect) {
+        // Person image is wider, fit to width
+        drawWidth = backgroundImg.width * 0.8; // Leave some margin
+        drawHeight = drawWidth / personAspect;
+      } else {
+        // Person image is taller, fit to height
+        drawHeight = backgroundImg.height * 0.8; // Leave some margin
+        drawWidth = drawHeight * personAspect;
+      }
+      
+      // Center the person image
+      drawX = (backgroundImg.width - drawWidth) / 2;
+      drawY = (backgroundImg.height - drawHeight) / 2;
+      
+      // First, add subtle edge feathering underneath for natural blending
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.filter = 'blur(3px)';
+      const featherSize = 6;
+      ctx.drawImage(
+        imageWithTransparentBg, 
+        drawX - featherSize, 
+        drawY - featherSize, 
+        drawWidth + featherSize * 2, 
+        drawHeight + featherSize * 2
+      );
+      ctx.restore();
+      
+      // Then draw the main person image with subtle shadow for natural integration
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 1;
+      
+      ctx.drawImage(imageWithTransparentBg, drawX, drawY, drawWidth, drawHeight);
+      
+      ctx.restore();
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob'));
+          }
+        },
+        'image/png',
+        1.0
+      );
+    };
+    
+    backgroundImg.onerror = () => {
+      reject(new Error('Failed to load background image'));
+    };
+    
+    // Load the mask image from public directory
+    backgroundImg.src = '/mask_A.webp';
+  });
+};
+
+export const addMaskBorders = (
+  originalImage: HTMLImageElement
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const maskImg = new Image();
+    maskImg.crossOrigin = 'anonymous';
+    
+    maskImg.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      // Set canvas dimensions: original width, height + 200px for borders
+      canvas.width = originalImage.width;
+      canvas.height = originalImage.height + 200;
+      
+      const borderHeight = 100; // 100px top + 100px bottom = 200px total
+      
+      // Draw top border from mask
+      ctx.drawImage(
+        maskImg,
+        0, 0, // Source position
+        maskImg.width, borderHeight, // Source dimensions
+        0, 0, // Destination position  
+        canvas.width, borderHeight // Destination dimensions
+      );
+      
+      // Draw original image in the center
+      ctx.drawImage(
+        originalImage,
+        0, borderHeight, // Position it after top border
+        canvas.width, originalImage.height
+      );
+      
+      // Draw bottom border from mask
+      ctx.drawImage(
+        maskImg,
+        0, maskImg.height - borderHeight, // Source from bottom of mask
+        maskImg.width, borderHeight, // Source dimensions
+        0, canvas.height - borderHeight, // Destination at bottom
+        canvas.width, borderHeight // Destination dimensions
+      );
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob'));
+          }
+        },
+        'image/png',
+        1.0
+      );
+    };
+    
+    maskImg.onerror = () => {
+      reject(new Error('Failed to load mask image'));
+    };
+    
+    // Load the mask image from public directory
+    maskImg.src = '/mask_A.webp';
   });
 };
 
