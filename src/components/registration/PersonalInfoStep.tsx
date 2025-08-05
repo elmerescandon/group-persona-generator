@@ -7,6 +7,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, User } from 'lucide-react';
 import { UserData } from './RegistrationWizard';
 
+interface Country {
+  name: string;
+  flag: string;
+}
+
+const LATIN_AMERICAN_COUNTRIES: Country[] = [
+  { name: 'Argentina', flag: '🇦🇷' },
+  { name: 'Bolivia', flag: '🇧🇴' },
+  { name: 'Brazil', flag: '🇧🇷' },
+  { name: 'Chile', flag: '🇨🇱' },
+  { name: 'Colombia', flag: '🇨🇴' },
+  // { name: 'Costa Rica', flag: '🇨🇷' },
+  // { name: 'Cuba', flag: '🇨🇺' },
+  // { name: 'Dominican Republic', flag: '🇩🇴' },
+  { name: 'Ecuador', flag: '🇪🇨' },
+  { name: 'El Salvador', flag: '🇸🇻' },
+  { name: 'Guatemala', flag: '🇬🇹' },
+  // { name: 'Haiti', flag: '🇭🇹' },
+  { name: 'Honduras', flag: '🇭🇳' },
+  // { name: 'Jamaica', flag: '🇯🇲' },
+  { name: 'Mexico', flag: '🇲🇽' },
+  { name: 'Nicaragua', flag: '🇳🇮' },
+  { name: 'Panama', flag: '🇵🇦' },
+  { name: 'Paraguay', flag: '🇵🇾' },
+  { name: 'Peru', flag: '🇵🇪' },
+  // { name: 'Trinidad and Tobago', flag: '🇹🇹' },
+  { name: 'Uruguay', flag: '🇺🇾' },
+  { name: 'Venezuela', flag: '🇻🇪' }
+];
+
 interface PersonalInfoStepProps {
   userData: UserData;
   updateUserData: (data: Partial<UserData>) => void;
@@ -47,11 +77,6 @@ export const PersonalInfoStep = ({ userData, updateUserData, onNext }: PersonalI
            userData.country && 
            userData.profilePicture;
   };
-
-  const countries = [
-    'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 
-    'Spain', 'Italy', 'Australia', 'Japan', 'South Korea', 'Brazil', 'Mexico'
-  ];
 
   return (
     <Card className="max-w-2xl mx-auto">
@@ -105,12 +130,15 @@ export const PersonalInfoStep = ({ userData, updateUserData, onNext }: PersonalI
           <Label htmlFor="country">Country</Label>
           <Select value={userData.country} onValueChange={(value) => updateUserData({ country: value })}>
             <SelectTrigger>
-              <SelectValue placeholder="Select your country" />
+              <SelectValue placeholder="Select your country" className="text-muted-foreground" />
             </SelectTrigger>
             <SelectContent>
-              {countries.map((country) => (
-                <SelectItem key={country} value={country}>
-                  {country}
+              {LATIN_AMERICAN_COUNTRIES.map((country) => (
+                <SelectItem key={country.name} value={country.name}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{country.flag}</span>
+                    <span>{country.name}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
