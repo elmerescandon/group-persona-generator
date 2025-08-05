@@ -51,7 +51,16 @@ export const RegistrationWizard = () => {
           <p className="text-muted-foreground text-lg">Join us and get your personalized content</p>
         </div>
 
-        <ProgressBar currentStep={currentStep} totalSteps={totalSteps} />
+        <ProgressBar 
+          currentStep={currentStep} 
+          totalSteps={totalSteps}
+          onStepClick={(step) => {
+            // Allow navigation to previous steps only
+            if (step <= currentStep) {
+              setCurrentStep(step);
+            }
+          }}
+        />
 
         <div className="mt-8">
           {currentStep === 1 && (
