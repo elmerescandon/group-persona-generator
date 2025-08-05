@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, Download, Image, Share2, Wand2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Image, Share2, Archive } from 'lucide-react';
 import { UserData } from './RegistrationWizard';
-import { LoadingSpinner } from './LoadingSpinner';
-import { loadImage, addColorBackground, addMaskBorders, createSocialBanner, createAdmissionBanner } from '@/lib/backgroundRemoval';
+import { loadImage, addMaskBorders, createSocialBanner, createAdmissionBanner } from '@/lib/backgroundRemoval';
 import { toast } from 'sonner';
 
 interface GeneratedImagesStepProps {
@@ -14,8 +14,7 @@ interface GeneratedImagesStepProps {
 }
 
 export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImagesStepProps) => {
-  const [isGenerating, setIsGenerating] = useState(true);
-  const [isProcessingBackground, setIsProcessingBackground] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [generatedImages, setGeneratedImages] = useState<{
     profileWithFlag: string | null;
     socialBanner: string | null;
@@ -25,12 +24,16 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
     socialBanner: null,
     admissionBanner: null,
   });
+  const [loadingStates, setLoadingStates] = useState({
+    profileWithFlag: true,
+    socialBanner: true,
+    admissionBanner: true,
+  });
+
 
   useEffect(() => {
     // Generate images automatically when component mounts
     const generateImages = async () => {
-      setIsGenerating(true);
-      
       try {
         const userName = `${userData.firstName} ${userData.lastName}`;
         const groupColor = getGroupHexColor();
@@ -43,6 +46,9 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
           const profileUrl = URL.createObjectURL(profileWithFlag);
           
           setGeneratedImages(prev => ({ ...prev, profileWithFlag: profileUrl }));
+          setLoadingStates(prev => ({ ...prev, profileWithFlag: false }));
+        } else {
+          setLoadingStates(prev => ({ ...prev, profileWithFlag: false }));
         }
         
         // Generate social banner
@@ -51,6 +57,7 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
         const socialBanner = await createSocialBanner(userData.selectedGroup || 'A', userName, groupColor);
         const socialUrl = URL.createObjectURL(socialBanner);
         setGeneratedImages(prev => ({ ...prev, socialBanner: socialUrl }));
+        setLoadingStates(prev => ({ ...prev, socialBanner: false }));
         
         // Generate admission banner
         toast.info('Creating admission banner...');
@@ -58,13 +65,12 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
         const admissionBanner = await createAdmissionBanner(userData.selectedGroup || 'A', userName, groupColor);
         const admissionUrl = URL.createObjectURL(admissionBanner);
         setGeneratedImages(prev => ({ ...prev, admissionBanner: admissionUrl }));
+        setLoadingStates(prev => ({ ...prev, admissionBanner: false }));
         
         toast.success('All images generated successfully!');
       } catch (error) {
         console.error('Error generating images:', error);
         toast.error('Failed to generate some images. Please try again.');
-      } finally {
-        setIsGenerating(false);
       }
     };
 
@@ -91,61 +97,85 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
     }
   };
 
-  const handleRemoveBackground = async () => {
-    if (!userData.profilePicture) {
-      toast.error('No profile picture found');
+  const handleDownloadImage = async (imageUrl: string, filename: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${userData.firstName}_${userData.lastName}_${filename}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+      toast.success(`${filename} downloaded successfully!`);
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast.error('Failed to download image. Please try again.');
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    const imagesToDownload = [
+      { url: generatedImages.profileWithFlag, filename: 'profile_with_flag' },
+      { url: generatedImages.socialBanner, filename: 'social_banner' },
+      { url: generatedImages.admissionBanner, filename: 'admission_banner' }
+    ].filter(img => img.url !== null);
+
+    if (imagesToDownload.length === 0) {
+      toast.error('No images available to download');
       return;
     }
 
-    setIsProcessingBackground(true);
-    try {
-      toast.info('Regenerating profile image...');
-      
-      // Load the image
-      const imageElement = await loadImage(userData.profilePicture);
-      
-      // Add mask borders with selected group
-      const finalImage = await addMaskBorders(imageElement, userData.selectedGroup || 'A');
-      
-      // Convert to URL and update the profile image
-      const imageUrl = URL.createObjectURL(finalImage);
-      setGeneratedImages(prev => ({ ...prev, profileWithFlag: imageUrl }));
-      
-      toast.success('Profile image regenerated with mask borders!');
-    } catch (error) {
-      console.error('Image processing failed:', error);
-      toast.error('Failed to process image. Please try again.');
-    } finally {
-      setIsProcessingBackground(false);
+    toast.info('Downloading all images...');
+    
+    for (const image of imagesToDownload) {
+      await handleDownloadImage(image.url!, image.filename);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between downloads
     }
+    
+    toast.success(`Downloaded ${imagesToDownload.length} images!`);
   };
 
   const images = [
     {
+      key: 'profileWithFlag',
       title: 'Profile with Flag Background',
       description: 'Your profile picture with your group flag as background',
       src: generatedImages.profileWithFlag,
       aspect: 'aspect-square',
-      hasBackgroundRemoval: true,
+      filename: 'profile_with_flag',
+      isLoading: loadingStates.profileWithFlag,
     },
     {
+      key: 'socialBanner',
       title: 'Social Media Banner',
       description: 'Perfect for your social media profiles',
       src: generatedImages.socialBanner,
       aspect: 'aspect-[3/1]',
+      filename: 'social_banner',
+      isLoading: loadingStates.socialBanner,
     },
     {
+      key: 'admissionBanner',
       title: 'Admission Banner',
       description: 'Celebrate your admission to the program',
       src: generatedImages.admissionBanner,
       aspect: 'aspect-[4/3]',
+      filename: 'admission_banner',
+      isLoading: loadingStates.admissionBanner,
     },
   ];
 
   const allImagesGenerated = images.every(img => img.src !== null);
+  const hasNextImage = currentImageIndex < images.length - 1;
+  const hasPrevImage = currentImageIndex > 0;
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl text-center">Your Personalized Content</CardTitle>
@@ -154,78 +184,118 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
           </p>
         </CardHeader>
         <CardContent>
-          {isGenerating && (
-            <div className="text-center py-12">
-              <LoadingSpinner />
-              <p className="text-lg font-medium mt-4">Generating your personalized content...</p>
-              <p className="text-muted-foreground mt-2">This may take a few moments</p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {images.map((image, index) => (
-              <div key={index} className="space-y-4">
-          <div className={`
-            ${image.aspect} w-full bg-muted rounded-lg overflow-hidden border-2 relative
-            ${image.src ? 'border-primary' : 'border-border'}
-          `}>
-                  {image.src ? (
+          {/* Carousel Container */}
+          <div className="relative mb-8">
+            {/* Image Display Area - Fixed Height */}
+            <div className="h-[500px] relative overflow-hidden rounded-lg border-2 border-border">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentImageIndex}
+                  initial={{ opacity: 0, x: 300 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -300 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0"
+                >
+                  {images[currentImageIndex].isLoading ? (
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <div className="text-center">
+                        <div className="animate-spin w-12 h-12 border-3 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+                        <p className="text-lg font-medium">Generating {images[currentImageIndex].title}...</p>
+                        <p className="text-sm text-muted-foreground mt-1">This may take a few moments</p>
+                      </div>
+                    </div>
+                  ) : images[currentImageIndex].src ? (
                     <img 
-                      src={image.src} 
-                      alt={image.title}
-                      className="w-full h-full object-cover"
+                      src={images[currentImageIndex].src} 
+                      alt={images[currentImageIndex].title}
+                      className="w-full h-full object-contain"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      {isGenerating ? (
-                        <div className="text-center">
-                          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">Generating...</p>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <Image className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">Pending</p>
-                        </div>
-                      )}
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <div className="text-center">
+                        <Image className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-lg font-medium text-muted-foreground">No image available</p>
+                      </div>
                     </div>
                   )}
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="font-semibold">{image.title}</h3>
-                  <p className="text-sm text-muted-foreground">{image.description}</p>
-                  
-                  <div className="flex gap-2">
-                    {image.hasBackgroundRemoval && image.src && (
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
-                        className="flex-1"
-                        onClick={handleRemoveBackground}
-                        disabled={isProcessingBackground}
-                      >
-                        <Wand2 className="w-4 h-4 mr-2" />
-                        {isProcessingBackground ? 'Processing...' : 'Regenerate'}
-                      </Button>
-                    )}
-                    {image.src && (
-                      <>
-                        <Button size="sm" variant="outline" className={image.hasBackgroundRemoval ? 'flex-1' : 'flex-1'}>
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Share2 className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Navigation Arrows */}
+            {hasPrevImage && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10"
+                onClick={() => setCurrentImageIndex(prev => prev - 1)}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            )}
+            
+            {hasNextImage && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10"
+                onClick={() => setCurrentImageIndex(prev => prev + 1)}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            )}
+
+            {/* Carousel Dots */}
+            <div className="flex justify-center mt-4 space-x-2">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    index === currentImageIndex ? 'bg-primary' : 'bg-muted-foreground/30'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
 
+          {/* Current Image Info */}
+          <motion.div
+            key={`info-${currentImageIndex}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="text-center mb-4"
+          >
+            <h3 className="text-xl font-semibold mb-2">{images[currentImageIndex].title}</h3>
+            <p className="text-muted-foreground">{images[currentImageIndex].description}</p>
+          </motion.div>
+
+          {/* Download Buttons - No Animation */}
+          <div className="flex justify-center gap-4 mb-6">
+            {images[currentImageIndex].src && (
+              <Button 
+                onClick={() => handleDownloadImage(images[currentImageIndex].src!, images[currentImageIndex].filename)}
+                className="flex-1 max-w-xs"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download This Image
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              onClick={handleDownloadAll}
+              disabled={!allImagesGenerated}
+              className="flex-1 max-w-xs"
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              Download All ({images.filter(img => img.src).length})
+            </Button>
+          </div>
+
+          {/* Navigation */}
           <div className="flex justify-between">
             <Button variant="outline" onClick={onPrev}>
               <ChevronLeft className="w-4 h-4 mr-2" />
