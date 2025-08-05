@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, User } from 'lucide-react';
 import { UserData } from './RegistrationWizard';
+import { ImageCropModal } from './ImageCropModal';
+import { useToast } from '@/hooks/use-toast';
 
 interface Country {
   name: string;
@@ -44,28 +46,83 @@ interface PersonalInfoStepProps {
 }
 
 export const PersonalInfoStep = ({ userData, updateUserData, onNext }: PersonalInfoStepProps) => {
+  const { toast } = useToast();
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null);
+  const [originalFileName, setOriginalFileName] = useState<string>('profile-picture.jpg');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setFileError('Please select an image file');
+        toast({
+          title: "Error",
+          description: "Please select a valid image file (JPG, PNG, etc.)",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Check file size (2MB = 2 * 1024 * 1024 bytes)
       const maxSize = 2 * 1024 * 1024;
       if (file.size > maxSize) {
         setFileError('File size must be less than 2MB');
         setProfilePreview(null);
         updateUserData({ profilePicture: undefined });
+        toast({
+          title: "Error",
+          description: "File size must be less than 2MB",
+          variant: "destructive",
+        });
         return;
       }
 
       setFileError(null);
-      updateUserData({ profilePicture: file });
+      setOriginalFileName(file.name);
+      
       const reader = new FileReader();
       reader.onload = (e) => {
-        setProfilePreview(e.target?.result as string);
+        const imageSrc = e.target?.result as string;
+        setOriginalImageSrc(imageSrc);
+        setIsCropModalOpen(true);
+      };
+      reader.onerror = () => {
+        setFileError('Failed to read file');
+        toast({
+          title: "Error",
+          description: "Failed to read the selected file",
+          variant: "destructive",
+        });
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    updateUserData({ profilePicture: croppedFile });
+    
+    // Create preview for the cropped image
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProfilePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(croppedFile);
+    
+    setIsCropModalOpen(false);
+    setOriginalImageSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setIsCropModalOpen(false);
+    setOriginalImageSrc(null);
+    // Reset file input
+    const fileInput = document.getElementById('profilePicture') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
     }
   };
 
@@ -145,56 +202,79 @@ export const PersonalInfoStep = ({ userData, updateUserData, onNext }: PersonalI
           </Select>
         </div>
 
-        {/* Option 1: Large Drop Zone with Centered Preview */}
-        <div className="space-y-2">
-          <Label>Profile Picture</Label>
-          <div className="relative group">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              id="profilePicture"
-            />
-            <div className={`
-              w-full h-48 border-2 border-dashed rounded-xl flex flex-col items-center justify-center
-              transition-all duration-200 cursor-pointer
-              ${profilePreview ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/70 hover:bg-primary/5'}
-              group-hover:scale-[1.02] group-active:scale-[0.98]
-            `}>
-              {profilePreview ? (
-                <div className="relative w-full h-full p-4">
-                  <img 
-                    src={profilePreview} 
-                    alt="Profile preview" 
-                    className="w-full h-full object-cover rounded-lg shadow-sm"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                    <div className="text-white text-center">
-                      <Upload className="w-6 h-6 mx-auto mb-1" />
-                      <p className="text-sm font-medium">Change Photo</p>
+        <div className="space-y-3">
+          <Label className="text-base font-medium">Profile Picture</Label>
+          <div className="flex items-start gap-4">
+            {/* Square Profile Picture Preview */}
+            <div className="relative group flex-shrink-0">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                id="profilePicture"
+              />
+              <div className={`
+                w-24 h-24 border-2 border-dashed rounded-xl flex items-center justify-center
+                transition-all duration-300 cursor-pointer relative overflow-hidden
+                ${profilePreview 
+                  ? 'border-primary/30 bg-primary/5 shadow-lg' 
+                  : 'border-border hover:border-primary/50 hover:bg-primary/5 hover:shadow-md'
+                }
+                group-hover:scale-105 group-active:scale-95
+              `}>
+                {profilePreview ? (
+                  <>
+                    <img 
+                      src={profilePreview} 
+                      alt="Profile preview" 
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <div className="text-white text-center">
+                        <Upload className="w-4 h-4 mx-auto mb-1" />
+                        <p className="text-xs font-medium">Change</p>
+                      </div>
                     </div>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <div className="w-8 h-8 mx-auto mb-1 bg-muted rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <User className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <p className="text-xs text-muted-foreground font-medium">Photo</p>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center p-6">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                  <h3 className="font-medium text-lg mb-1">Upload your photo</h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Drag and drop or click to browse
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    JPG, PNG up to 2MB • 1000×1000 recommended
-                  </p>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+
+            {/* Upload Button and Info - Side by side layout */}
+            <div className="flex-1 space-y-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('profilePicture')?.click()}
+                className="w-full hover:bg-primary/5 hover:border-primary/50 transition-all duration-200"
+                size="sm"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {profilePreview ? 'Change Photo' : 'Upload Photo'}
+              </Button>
+              
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  JPG, PNG up to 2MB
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  1000×1000 pixels recommended for best quality
+                </p>
+              </div>
             </div>
           </div>
+
           {fileError && (
             <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
               <p className="text-sm text-red-600">{fileError}</p>
             </div>
           )}
@@ -209,6 +289,17 @@ export const PersonalInfoStep = ({ userData, updateUserData, onNext }: PersonalI
           Continue to Group Selection
         </Button>
       </CardContent>
+      
+      {/* Image Crop Modal */}
+      {originalImageSrc && (
+        <ImageCropModal
+          isOpen={isCropModalOpen}
+          onClose={handleCropCancel}
+          imageSrc={originalImageSrc}
+          onCropComplete={handleCropComplete}
+          fileName={originalFileName}
+        />
+      )}
     </Card>
   );
 };
