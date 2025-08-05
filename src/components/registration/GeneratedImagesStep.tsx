@@ -39,7 +39,7 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
         if (userData.profilePicture) {
           toast.info('Processing profile picture...');
           const imageElement = await loadImage(userData.profilePicture);
-          const profileWithFlag = await addMaskBorders(imageElement);
+          const profileWithFlag = await addMaskBorders(imageElement, userData.selectedGroup || 'A');
           const profileUrl = URL.createObjectURL(profileWithFlag);
           
           setGeneratedImages(prev => ({ ...prev, profileWithFlag: profileUrl }));
@@ -104,8 +104,8 @@ export const GeneratedImagesStep = ({ userData, onNext, onPrev }: GeneratedImage
       // Load the image
       const imageElement = await loadImage(userData.profilePicture);
       
-      // Add mask borders
-      const finalImage = await addMaskBorders(imageElement);
+      // Add mask borders with selected group
+      const finalImage = await addMaskBorders(imageElement, userData.selectedGroup || 'A');
       
       // Convert to URL and update the profile image
       const imageUrl = URL.createObjectURL(finalImage);

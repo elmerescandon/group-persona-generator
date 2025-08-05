@@ -160,7 +160,8 @@ export const addColorBackground = (
 };
 
 export const addImageBackground = (
-  imageWithTransparentBg: HTMLImageElement
+  imageWithTransparentBg: HTMLImageElement,
+  selectedGroup: 'A' | 'B' | 'C' | 'D' = 'A'
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const backgroundImg = new Image();
@@ -241,16 +242,17 @@ export const addImageBackground = (
     };
     
     backgroundImg.onerror = () => {
-      reject(new Error('Failed to load background image'));
+      reject(new Error(`Failed to load background image for group ${selectedGroup}`));
     };
     
-    // Load the mask image from public directory
-    backgroundImg.src = '/mask_A.webp';
+    // Load the appropriate mask image based on selected group
+    backgroundImg.src = `/mask_${selectedGroup}.png`;
   });
 };
 
 export const addMaskBorders = (
-  originalImage: HTMLImageElement
+    originalImage: HTMLImageElement,
+  selectedGroup: 'A' | 'B' | 'C' | 'D' = 'A'
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const maskImg = new Image();
@@ -265,12 +267,40 @@ export const addMaskBorders = (
         return;
       }
       
-      // Set canvas dimensions: original width, height + 200px for borders
-      canvas.width = originalImage.width;
-      canvas.height = originalImage.height + 200;
+      // Set canvas dimensions to 1000x1000 (square format)
+      canvas.width = 1000;
+      canvas.height = 1000;
       
       const borderHeight = 100; // 100px top + 100px bottom = 200px total
+      const imageHeight = 800; // 1000 - 200 = 800px for the main image area
       
+      // STEP 1: Crop-to-fill the original image to fit the 1000x800 area
+      const availableWidth = canvas.width; // 1000px
+      const availableHeight = imageHeight; // 800px
+      
+      // Calculate scale factors for both dimensions
+      const scaleX = availableWidth / originalImage.width;
+      const scaleY = availableHeight / originalImage.height;
+      
+      // Use the LARGER scale to ensure complete coverage (crop-to-fill)
+      const scale = Math.max(scaleX, scaleY);
+      
+      // Calculate the scaled dimensions
+      const scaledWidth = originalImage.width * scale;
+      const scaledHeight = originalImage.height * scale;
+      
+      // Center the scaled image (crop excess parts equally from both sides)
+      const offsetX = (availableWidth - scaledWidth) / 2;
+      const offsetY = borderHeight + (availableHeight - scaledHeight) / 2;
+      
+      // STEP 2: Draw the processed image in the middle section
+      ctx.drawImage(
+        originalImage,
+        offsetX, offsetY, // Centered position
+        scaledWidth, scaledHeight // Scaled dimensions that fill the area
+      );
+      
+      // STEP 3: Add borders on top as overlays (this ensures borders are never cropped)
       // Draw top border from mask
       ctx.drawImage(
         maskImg,
@@ -278,13 +308,6 @@ export const addMaskBorders = (
         maskImg.width, borderHeight, // Source dimensions
         0, 0, // Destination position  
         canvas.width, borderHeight // Destination dimensions
-      );
-      
-      // Draw original image in the center
-      ctx.drawImage(
-        originalImage,
-        0, borderHeight, // Position it after top border
-        canvas.width, originalImage.height
       );
       
       // Draw bottom border from mask
@@ -310,11 +333,11 @@ export const addMaskBorders = (
     };
     
     maskImg.onerror = () => {
-      reject(new Error('Failed to load mask image'));
+      reject(new Error(`Failed to load mask image for group ${selectedGroup}`));
     };
     
-    // Load the mask image from public directory
-    maskImg.src = '/mask_A.webp';
+    // Load the appropriate mask image based on selected group
+    maskImg.src = `/mask_${selectedGroup}.png`;
   });
 };
 
